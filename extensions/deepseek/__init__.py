@@ -37,4 +37,4 @@ async def get_deepseek_anwser(question: str) -> str:
 
 
 if __name__ == '__main__':
-    print(asyncio.run(get_deepseek_anwser("心绞痛该怎么办")))
+    print(asyncio.run(get_deepseek_anwser("怎么看美俄结盟")))
