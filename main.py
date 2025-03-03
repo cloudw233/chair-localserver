@@ -1,4 +1,6 @@
-import loguru, uvicorn
+import orjson as json
+
+import loguru, uvicorn, logging
 
 from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel as PydanticBaseModel
@@ -11,7 +13,8 @@ app = FastAPI()
 connect_pool = {}
 CONNECTIONS = 2
 
-logger = loguru.logger()
+logger = loguru.logger
+
 
 class BaseModel(PydanticBaseModel):
     model_config = ConfigDict(strict=True)
@@ -46,24 +49,26 @@ class UI(BaseModel):
 @app.websocket("/sensor")
 async def sensor(websocket: WebSocket):
     await websocket.accept()
-    connect_pool['sensor'] = websocket
     while True:
         data = await websocket.receive_text()
-        logger.info(data)
+        logger.debug(data)
         try:
             _sensor = Sensor.model_validate(from_json(data, allow_partial=True))
-            logger.info(_sensor)
-            if len(connect_pool.keys()) == CONNECTIONS:
-                await connect_pool['client'].send_text(data)
+            usrname = _sensor.username
+            if _sensor.action == 'data':
+                connect_pool[usrname] = websocket
+                logger.debug(_sensor)
+                await websocket.send_text(str(json.dumps({'ret_code': 0})))
+                if connect_pool.get(usrname + '_client'):
+                    await connect_pool['client'].send_text(data)
 
         except Exception as e:
-            print(e)
+            logger.error(e)
 
 
 @app.websocket("/client")
 async def client(websocket: WebSocket):
     await websocket.accept()
-    connect_pool['client'] = websocket
     while True:
         data = await websocket.receive_text()
         try:
@@ -71,6 +76,25 @@ async def client(websocket: WebSocket):
         except Exception as e:
             print(e)
 
-if __name__ == '__main__':
-    # 运行fastapi程序
-    uvicorn.run(app="run:app", host="0.0.0.0", port=55433)
+
+if __name__ == "__main__":
+    try:
+        class InterceptHandler(logging.Handler):
+            def emit(self, record):
+                logger_opt = logger.opt(depth=6, exception=record.exc_info)
+                logger_opt.log(record.levelno, record.getMessage())
+
+
+        def init_logger():
+            LOGGER_NAMES = ("uvicorn", "uvicorn.access",)
+            for logger_name in LOGGER_NAMES:
+                logging_logger = logging.getLogger(logger_name)
+                logging_logger.handlers = [InterceptHandler()]
+
+
+        config = uvicorn.Config(app, host="0.0.0.0", port=int(55433), access_log=True, workers=1)
+        server = uvicorn.Server(config)
+        init_logger()
+        server.run()
+    except KeyboardInterrupt:
+        pass

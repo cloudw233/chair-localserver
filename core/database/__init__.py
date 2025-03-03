@@ -8,11 +8,7 @@ async def init_db():
     await Tortoise.init(
         db_url=db_link,
         modules={'models': [
-            'core.database_v2.models',
-            'modules.cytoid.models',
-            'modules.maimai.models',
-            'modules.osu.models',
-            'modules.phigros.models']
+            'core.database.models',]
         },
     )
 
