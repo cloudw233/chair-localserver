@@ -2,18 +2,28 @@ import orjson as json
 
 import loguru, uvicorn, logging
 
+import httpx
+
 from fastapi import FastAPI, WebSocket
 from pydantic import BaseModel as PydanticBaseModel
 from pydantic import ConfigDict
 from pydantic_core import from_json
 from typing import Literal, Union
-
-app = FastAPI()
+from contextlib import asynccontextmanager
+global httpx_client
 
 connect_pool = {}
 CONNECTIONS = 2
 
 logger = loguru.logger
+
+@asynccontextmanager
+async def lifespan():
+    httpx_client = httpx.AsyncClient()
+    yield
+    await httpx_client.aclose()
+
+app = FastAPI(lifespan=lifespan())
 
 
 class BaseModel(PydanticBaseModel):

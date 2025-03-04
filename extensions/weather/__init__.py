@@ -1,3 +1,4 @@
+import httpx
 import orjson as json
 
 from urllib.parse import quote
@@ -9,11 +10,12 @@ key = config("qweather_api_key")
 header = "X-QW-Api-Key: " + key
 
 class QWeather:
-    def __init__(self, city):
+    def __init__(self, city, client: httpx.AsyncClient):
         self.__city_id = None
         self.__lon = None
         self.__lat = None
         self.city = city
+        self.client = client
 
 
     async def find_city(self):
@@ -23,7 +25,7 @@ class QWeather:
         :return: 城市id
         """
         url = quote(f"https://geoapi.qweather.com/v2/city/lookup?location={self.city}")
-        response = json.loads(await url_get(url, header))
+        response = json.loads(await url_get(self.client, url, header))
         if response.get('code', 404) == "200":
             self.__city_id = response.get('location')[0].get('id')
             self.__lat = response.get('location')[0].get('lat')
@@ -43,7 +45,7 @@ class QWeather:
         if city_id is None:
             await self.find_city()
         url = quote(f"https://devapi.qweather.com/v7/weather/7d?location={self.__city_id}")
-        response = json.loads(await url_get(url,header))
+        response = json.loads(await url_get(self.client,url,header))
         if response.get('code', 404) == "200":
             return response.get('daily')
         else:
@@ -59,7 +61,7 @@ class QWeather:
         if city_id is None:
             await self.find_city()
         url = quote(f"https://devapi.qweather.com/v7/indices/1d?type=0&location={self.__city_id}")
-        response = json.loads(await url_get(url,header))
+        response = json.loads(await url_get(self.client, url, header))
         if response.get('code', 404) == "200":
             return response.get('daily')
         else:
@@ -75,7 +77,7 @@ class QWeather:
         if city_id is None:
             await self.find_city()
         url = quote(f"https://api.qweather.com/airquality/v1/current/{self.__lat}/{self.__lon}")
-        response = json.loads(await url_get(url,header))
+        response = json.loads(await url_get(self.client, url, header))
         if response.get('code', 404) == "200":
             return response.get('now')
         else:
