@@ -1,59 +1,34 @@
 import orjson as json
 
-import loguru, uvicorn, logging
-
-import httpx
+import loguru, uvicorn, logging, httpx
 
 from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel as PydanticBaseModel
-from pydantic import ConfigDict
 from pydantic_core import from_json
-from typing import Literal, Union
 from contextlib import asynccontextmanager
+
+from core.database.models import User
+from core.pydantic_models import *
+from core.utils.ws_connect import recv_data
+from core.database import init_db
+
 global httpx_client
 
-connect_pool = {}
-CONNECTIONS = 2
+sensor_pool = {}
+client_pool = {}
+monitor_pool = {}
 
 logger = loguru.logger
 
+
 @asynccontextmanager
-async def lifespan():
+async def httpx_c(app: FastAPI):
     httpx_client = httpx.AsyncClient()
+    await init_db()
     yield
     await httpx_client.aclose()
 
-app = FastAPI(lifespan=lifespan())
 
-
-class BaseModel(PydanticBaseModel):
-    model_config = ConfigDict(strict=True)
-
-
-class Account(BaseModel):
-    username: str
-    password: Union[str, int] = None
-    action: Literal["login", "register", "data"]
-    face_recognition_data: str = None
-
-
-class Sensor(Account):
-    DHT_T: str = None
-    DHT_H: str = None
-    power: str = None
-    urgent_button: str = None
-    tilt: bool = None
-    heart_data: int = None
-    smoke: dict = None
-    seat: str = None
-
-
-class Weather(BaseModel):
-    city: str
-
-
-class UI(BaseModel):
-    seat: float | int
+app = FastAPI(lifespan=httpx_c)
 
 
 @app.websocket("/sensor")
@@ -66,11 +41,12 @@ async def sensor(websocket: WebSocket):
             _sensor = Sensor.model_validate(from_json(data, allow_partial=True))
             usrname = _sensor.username
             if _sensor.action == 'data':
-                connect_pool[usrname] = websocket
+                sensor_pool[usrname] = websocket
                 logger.debug(_sensor)
                 await websocket.send_text(str(json.dumps({'ret_code': 0})))
-                if connect_pool.get(usrname + '_client'):
-                    await connect_pool['client'].send_text(data)
+                for connection in [client_pool, monitor_pool]:
+                    if connection.get(usrname):
+                        await client_pool[usrname].send_text(data)
 
         except Exception as e:
             logger.error(e)
@@ -78,13 +54,12 @@ async def sensor(websocket: WebSocket):
 
 @app.websocket("/client")
 async def client(websocket: WebSocket):
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        try:
-            logger.info(data)
-        except Exception as e:
-            print(e)
+    await recv_data(client_pool, websocket, logger, Account, User)
+
+
+@app.websocket("/monitor")
+async def monitor(websocket: WebSocket):
+    await recv_data(monitor_pool, websocket, logger, Account, User)
 
 
 if __name__ == "__main__":
