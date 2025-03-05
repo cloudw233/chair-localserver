@@ -3,7 +3,7 @@ import orjson as json
 
 from urllib.parse import quote
 from core.utils.http import url_get
-from core.config import config
+from config import config
 
 key = config("qweather_api_key")
 

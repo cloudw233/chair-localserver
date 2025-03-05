@@ -1,5 +1,5 @@
 from openai import AsyncOpenAI
-from core.config import config
+from config import config
 
 import asyncio
 

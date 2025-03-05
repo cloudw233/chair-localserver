@@ -14,14 +14,14 @@ class Account(BaseModel):
 
 
 class Sensor(Account):
-    DHT_T: str = None
-    DHT_H: str = None
-    power: str = None
-    urgent_button: str = None
+    DHT_T: float = None
+    DHT_H: float = None
+    power: float = None
+    urgent_button: bool = None
     tilt: bool = None
     heart_data: int = None
     smoke: dict = None
-    seat: str = None
+    seat: int = None
 
 
 class Weather(BaseModel):

@@ -1,3 +1,5 @@
 siliconflow_api_key = "sk-hxvrwifwudymifrvnheulyqqzjkkxwulqxhdvgeqewfhmoja"
 qweather_api_key = "0fee3285a2054d469e21ee48314f1534"
 db_path = "sqlite://save.db"
+azure_tts_key = "DQw1ly1jNwkpsvFM94kUeo0dRi3aHmbR3yKseJF0rprLraeoEGB8JQQJ99BCAC3pKaRXJ3w3AAAYACOGT33i"
+azure_tts_region = "eastasia"

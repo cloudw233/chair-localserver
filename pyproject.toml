@@ -18,6 +18,7 @@ openai = "^1.65.1"
 loguru = "^0.7.3"
 tomlkit = "^0.13.2"
 orjson = "^3.10.15"
+azure-cognitiveservices-speech = "^1.42.0"
 
 
 [build-system]

@@ -1,4 +1,4 @@
-from core.config import config
+from config import config
 from tortoise import Tortoise
 
 db_link = config("db_path")
