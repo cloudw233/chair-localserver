@@ -6,7 +6,7 @@ from pydantic_core import from_json
 
 async def recv_data(pool: dict, websocket: WebSocket, logger: loguru.logger, account, users) -> None:
     """
-    接收和发送数据
+    从服务端和客户端之间接收和发送数据
     :param pool: 连接池
     :param websocket: ws连接类
     :param logger: 日志类
@@ -21,15 +21,17 @@ async def recv_data(pool: dict, websocket: WebSocket, logger: loguru.logger, acc
             _account = account.model_validate(from_json(data, allow_partial=True))
             usrname = _account.username
             action = _account.action
-            if action == "login":
-                user = await users.get_or_create(username=usrname)
-                verified = await user[0].verify(_account.password)
-                if verified:
-                    pool[usrname] = websocket
-                    resp = await websocket.receive_text()
-                    logger.debug(resp)
-                else:
-                    await websocket.send_text(str(json.dumps({'ret_code': 1})))
-                logger.info(data)
+            match action:
+                case 'login':
+                    user = await users.get_or_none(username=usrname)
+                    verified = await user[0].verify(_account.password)
+                    if verified:
+                        pool[usrname] = websocket
+                        resp = await websocket.receive_text()
+                        logger.debug(resp)
+                    else:
+                        await websocket.send_text(str(json.dumps({'ret_code': 1})))
+                    logger.info(data)
+
         except Exception as e:
             logger.error(e)

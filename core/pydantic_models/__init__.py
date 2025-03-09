@@ -31,4 +31,7 @@ class Weather(BaseModel):
 class UI(BaseModel):
     seat: float | int
 
+class Heart(Account):
+    bpm: int
+
 __all__ = ['Account', 'Sensor', 'Weather', 'UI']
