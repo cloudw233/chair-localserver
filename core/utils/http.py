@@ -1,6 +1,9 @@
 import httpx
 
+import orjson as json
+
 from typing import Any
+from fastapi import Websocket
 
 
 async def url_post(client: httpx.AsyncClient, url: str, data: dict|str, headers: dict = None) -> Any:
@@ -23,3 +26,9 @@ async def url_get(client: httpx.AsyncClient, url: str, headers: dict|str = None)
     """
     response = await client.get(url, headers=headers, follow_redirects=True)
     return response
+
+
+async def resp(ws:Websocket, code:int, msg:str)->None:
+    await ws.send_text(str(json.dumps(
+        {'ret_code': code, 'msg': msg}
+            )))

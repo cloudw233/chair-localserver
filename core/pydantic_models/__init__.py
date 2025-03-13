@@ -34,4 +34,6 @@ class UI(BaseModel):
 class Heart(Account):
     bpm: int
 
-__all__ = ['Account', 'Sensor', 'Weather', 'UI']
+class DeepSeek(BaseModel):
+    question: str
+__all__ = ['Account', 'Sensor', 'Weather', 'UI', 'Heart', 'DeepSeek']
